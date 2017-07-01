@@ -107,17 +107,17 @@ See \\[mc-iswitch-to-buffer]."
 	       (catch 'iswitch-done
 		 (let ((bufs (apply 'append
 				    (mapcar
-				     '(lambda (b)
-					(cond ((eq b (current-buffer))
-					       nil)
-					      ((string-equal ""
-							     (buffer-name b))
-					       nil)
-					      ((= (aref (buffer-name b) 0) ? )
-					       nil)
-					      (t
-					       (list (cons (buffer-name b)
-							   b)))))
+				     #'(lambda (b)
+                                         (cond ((eq b (current-buffer))
+                                                nil)
+                                               ((string-equal ""
+                                                              (buffer-name b))
+                                                nil)
+                                               ((= (aref (buffer-name b) 0) ? )
+                                                nil)
+                                               (t
+                                                (list (cons (buffer-name b)
+                                                            b)))))
 				     (buffer-list))))
 		       ;(completion-ignore-case t)
 		       (name '("")))
@@ -293,10 +293,10 @@ See \\[mc-iswitch-to-buffer]."
 		      "{"
 		      (apply 'concat
 			     (cdr (apply 'append
-					 (mapcar '(lambda (com)
-						    (list ","
-							  (substring
-							   com (length most))))
+					 (mapcar #'(lambda (com)
+                                                     (list ","
+                                                           (substring
+                                                            com (length most))))
 						 comps))))
 		      "}"))
 		  (m (* 4 (frame-width))))
