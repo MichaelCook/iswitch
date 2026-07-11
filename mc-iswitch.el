@@ -1,4 +1,4 @@
-;;  -*- lexical-binding: t; -*-
+;; -*- lexical-binding: t; -*-
 
 ;; mc-iswitch : An isearch-like version of switch-to-buffer.
 
@@ -54,7 +54,13 @@
 ;; 12/04/92 More information in the prompt: () and {}.
 ;;
 
-;; See also the `icomplete.el' package, which was inspired by this code.
+;; See also icomplete.el (https://github.com/emacs-mirror/emacs/blob/master/lisp/icomplete.el)
+;; and iswitchb.el (https://github.com/emacs-mirror/emacs/blob/master/lisp/obsolete/iswitchb.el)
+;; which were inspired by this code.
+;;
+;; iswitchb is considered obsolete.
+;; https://superuser.com/questions/811454/why-was-iswitchb-removed-from-gnu-emacs-24
+;; https://emacs.stackexchange.com/questions/41401/was-org-iswitchb-removed-and-what-is-its-closest-replacement
 
 (defun mc-iswitch-to-buffer (arg)
   "An isearch-like version of `switch-to-buffer'.
@@ -126,8 +132,13 @@ See \\[mc-iswitch-to-buffer]."
                    (while t
                      (or (input-pending-p)
                          (let (message-log-max) ; don't update *Messages*
-                           (message (concat "Switch to buffer" prompt ": %s")
-                                    (mc-iswitch-prompt (car name) bufs))))
+                           (message "%s"
+                                    (mc-iswitch-chop
+                                     (concat
+                                      "Switch to buffer"
+                                      prompt
+                                      ": "
+                                      (mc-iswitch-prompt (car name) bufs))))))
                      (let ((event (read-event)))
                        (cond
                         ;;
@@ -287,23 +298,35 @@ See \\[mc-iswitch-to-buffer]."
                  (concat "(" (substring (car comps) (length name)) ")"))
             " [Matched]"))
           (t                            ; Multiple matches.
-           (let* ((most (try-completion name bufs))
-                  (p (concat
-                      name
-                      (and (> (length most) (length name))
-                           (concat "(" (substring most (length name)) ")"))
-                      "{"
-                      (apply 'concat
-                             (cdr (apply 'append
-                                         (mapcar #'(lambda (com)
-                                                     (list ","
-                                                           (substring
-                                                            com (length most))))
-                                                 comps))))
-                      "}"))
-                  (m (* 4 (frame-width))))
-             (if (< (length p) m)
-                 p
-               (concat (substring p 0 m) "...")))))))
+           (let ((most (try-completion name bufs)))
+             (concat
+              name
+              (and (> (length most) (length name))
+                   (concat "(" (substring most (length name)) ")"))
+              "{"
+              (apply 'concat
+                     (cdr (apply 'append
+                                 (mapcar #'(lambda (com)
+                                             (list ","
+                                                   (substring
+                                                    com (length most))))
+                                         comps))))
+              "}"))))))
 
 ;;(mc-iswitch-prompt "abcdefg" '(("abcdefghi" . 1) ("abcdefghj" . 1) ("abcdefklm" . 2) ("abcdefnop" . 3)))
+
+(defun mc-max-mini-window-lines ()
+  "Calculate the maximum number of lines allowed for the minibuffer."
+  (cond
+   ((floatp max-mini-window-height)
+    (floor (* (frame-height) max-mini-window-height)))
+   ((integerp max-mini-window-height)
+    max-mini-window-height)
+   (t 1))) ; Fallback if disabled or nil
+
+(defun mc-iswitch-chop (prompt)
+  "Truncate the prompt if it's too long."
+  (let ((most (* (mc-max-mini-window-lines) (frame-width))))
+    (if (< (length prompt) most)
+        prompt
+      (concat (substring prompt 0 (- most 3)) "..."))))
